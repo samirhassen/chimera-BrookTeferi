@@ -1,0 +1,53 @@
+version: "3.8"
+services:
+  orchestrator:
+   build: ./orchestrator
+   ports:
+    - "${ORCHESTRATOR_PORT:-8080}:${ORCHESTRATOR_PORT:-8080}"
+   env_file:
+    - .env
+   environment:
+    - ORCHESTRATOR_PORT=${ORCHESTRATOR_PORT:-8080}
+   depends_on:
+    - agent_sanitizer
+    - agent_analyzer
+    - agent_reporter
+
+
+  agent_sanitizer:
+    build: ./agents/sanitizer
+    ports:
+      - "${SANITIZER_PORT:-5001}:${SANITIZER_PORT:-5001}"
+    env_file:
+      - .env
+    environment:
+      - SANITIZER_PORT=${SANITIZER_PORT:-5001}
+      - SANITIZER_URL=${SANITIZER_URL:-http://agent_sanitizer:5001}
+      - ORCHESTRATOR_URL=${ORCHESTRATOR_URL:-http://orchestrator:8080}
+
+
+  agent_analyzer:
+    build: ./agents/analyzer
+    ports:
+      - "${ANALYZER_PORT:-5002}:${ANALYZER_PORT:-5002}"
+    env_file:
+      - .env
+    environment:
+      - ANALYZER_PORT=${ANALYZER_PORT:-5002}
+      - ANALYZER_URL=${ANALYZER_URL:-http://agent_analyzer:5002}
+      - SANITIZER_URL=${SANITIZER_URL:-http://agent_sanitizer:5001}
+      - ORCHESTRATOR_URL=${ORCHESTRATOR_URL:-http://orchestrator:8080}
+
+
+  agent_reporter:
+    build: ./agents/reporter
+    ports:
+      - "${REPORTER_PORT:-5003}:${REPORTER_PORT:-5003}"
+    env_file:
+      - .env
+    environment:
+      # The reporter agent needs to call the analyzer directly
+      - REPORTER_PORT=${REPORTER_PORT:-5003}
+      - REPORTER_URL=${REPORTER_URL:-http://agent_reporter:5003}
+      - ANALYZER_URL=${ANALYZER_URL:-http://agent_analyzer:5002}
+      - ORCHESTRATOR_URL=${ORCHESTRATOR_URL:-http://orchestrator:8080}
